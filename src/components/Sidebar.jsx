@@ -1,46 +1,55 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
+  
+  const getNavLinkClass = ({ isActive }) => {
+    return `block px-8 py-3 font-medium transition-colors ${
+      isActive 
+        ? 'text-red-600 bg-gray-200 rounded-lg hover:bg-red-100 hover:text-red-700' 
+        : '' 
+    }`;
+  };
+
   return (
     <aside className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col flex-shrink-0">
-     
+      
       <div className="py-4 px-8 border-b border-gray-100 flex items-center h-[73px]">
-        <div>MENU CHÍNH</div>
+        <div className="font-bold text-gray-800">MENU CHÍNH</div>
       </div>
       
-     
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1">
           <li>
-            <Link to="/dashboard" className="block px-8 py-3 text-red-700 bg-red-50 font-medium transition-colors">
+            <NavLink to="/dashboard" className={getNavLinkClass}>
               Bảng điều khiển
-            </Link>
+            </NavLink>
           </li>
           <li>
-            <Link to="#" className="block px-8 py-3 text-gray-600 hover:bg-gray-50 hover:text-red-700 font-medium transition-colors">
+            <NavLink to="/monhoc" className={getNavLinkClass}>
               Môn học của tôi
-            </Link>
+            </NavLink>
           </li>
           <li>
-            <Link to="#" className="block px-8 py-3 text-gray-600 hover:bg-gray-50 hover:text-red-700 font-medium transition-colors">
+           
+            <NavLink to="#nhomhoc" className={getNavLinkClass}>
               Nhóm học
-            </Link>
+            </NavLink>
           </li>
           <li>
-            <Link to="#" className="block px-8 py-3 text-gray-600 hover:bg-gray-50 hover:text-red-700 font-medium transition-colors">
+            <NavLink to="#khonggian" className={getNavLinkClass}>
               Không gian làm việc
-            </Link>
+            </NavLink>
           </li>
           <li>
-            <Link to="#" className="block px-8 py-3 text-gray-600 hover:bg-gray-50 hover:text-red-700 font-medium transition-colors">
+            <NavLink to="#lich" className={getNavLinkClass}>
               Lịch làm việc
-            </Link>
+            </NavLink>
           </li>
           <li>
-            <Link to="#" className="block px-8 py-3 text-gray-600 hover:bg-gray-50 hover:text-red-700 font-medium transition-colors">
+            <NavLink to="#caidat" className={getNavLinkClass}>
               Cài đặt tài khoản
-            </Link>
+            </NavLink>
           </li>
         </ul>
       </nav>
