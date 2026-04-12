@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
+import DashboardSV from './pages/DashboardSV.jsx';
+import MyMonHoc from './pages/MyMonHoc.jsx';
 function App() {
   return (
     <Router>
@@ -8,7 +10,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path ="/login" element={<Login />} />
-         
+          <Route path="/dashboard" element={<DashboardSV />} />
+          <Route path="/monhoc" element={<MyMonHoc />} />
         </Routes>
       </div>
     </Router>
