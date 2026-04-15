@@ -47,7 +47,7 @@ const Sidebar = () => {
             </NavLink>
           </li>
           <li>
-            <NavLink to="#caidat" className={getNavLinkClass}>
+            <NavLink to="/caidattksv" className={getNavLinkClass}>
               Cài đặt tài khoản
             </NavLink>
           </li>

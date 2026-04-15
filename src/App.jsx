@@ -5,6 +5,7 @@ import DashboardSV from './pages/DashboardSV.jsx';
 import MyMonHoc from './pages/MyMonHoc.jsx';
 import Nhomhoc from './pages/Nhomhoc.jsx';
 import KGLamViec from './pages/KGLamViec.jsx';
+import CaidatTKSV from './pages/CaidatTKSV.jsx';
 function App() {
   return (
     <Router>
@@ -16,6 +17,7 @@ function App() {
           <Route path="/monhoc" element={<MyMonHoc />} />
           <Route path="/nhomhoc" element={<Nhomhoc />} />
           <Route path="/kglamviec" element={<KGLamViec />} />
+          <Route path="/caidattksv" element={<CaidatTKSV />} />
         </Routes>
       </div>
     </Router>
