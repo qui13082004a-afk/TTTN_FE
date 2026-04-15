@@ -42,7 +42,7 @@ const Sidebar = () => {
             </NavLink>
           </li>
           <li>
-            <NavLink to="#lich" className={getNavLinkClass}>
+            <NavLink to="/LichLamViecsv" className={getNavLinkClass}>
               Lịch làm việc
             </NavLink>
           </li>
