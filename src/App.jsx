@@ -4,6 +4,7 @@ import Login from './pages/Login.jsx';
 import DashboardSV from './pages/DashboardSV.jsx';
 import MyMonHoc from './pages/MyMonHoc.jsx';
 import Nhomhoc from './pages/Nhomhoc.jsx';
+import KGLamViec from './pages/KGLamViec.jsx';
 function App() {
   return (
     <Router>
@@ -14,6 +15,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardSV />} />
           <Route path="/monhoc" element={<MyMonHoc />} />
           <Route path="/nhomhoc" element={<Nhomhoc />} />
+          <Route path="/kglamviec" element={<KGLamViec />} />
         </Routes>
       </div>
     </Router>

@@ -37,7 +37,7 @@ const Sidebar = () => {
             </NavLink>
           </li>
           <li>
-            <NavLink to="#khonggian" className={getNavLinkClass}>
+            <NavLink to="/kglamviec" className={getNavLinkClass}>
               Không gian làm việc
             </NavLink>
           </li>
