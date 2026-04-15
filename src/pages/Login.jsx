@@ -61,7 +61,7 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Footer */}
+      
       <footer className="absolute bottom-0 left-0 p-8 text-xs text-blue-900 font-bold tracking-wider">
         STU TEAMWORK
       </footer>

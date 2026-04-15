@@ -3,6 +3,7 @@ import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
 import DashboardSV from './pages/DashboardSV.jsx';
 import MyMonHoc from './pages/MyMonHoc.jsx';
+import Nhomhoc from './pages/Nhomhoc.jsx';
 function App() {
   return (
     <Router>
@@ -12,6 +13,7 @@ function App() {
           <Route path ="/login" element={<Login />} />
           <Route path="/dashboard" element={<DashboardSV />} />
           <Route path="/monhoc" element={<MyMonHoc />} />
+          <Route path="/nhomhoc" element={<Nhomhoc />} />
         </Routes>
       </div>
     </Router>

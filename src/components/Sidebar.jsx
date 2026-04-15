@@ -32,7 +32,7 @@ const Sidebar = () => {
           </li>
           <li>
            
-            <NavLink to="#nhomhoc" className={getNavLinkClass}>
+            <NavLink to="/nhomhoc" className={getNavLinkClass}>
               Nhóm học
             </NavLink>
           </li>
