@@ -29,7 +29,7 @@ export default function Login() {
                 <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Email</label>
                 <input 
                   type="email" 
-                  placeholder="student@stu.edu.vn" 
+                  placeholder="MSSV@student.stu.edu.vn" 
                   className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                 />
               </div>
