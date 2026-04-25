@@ -1,9 +1,49 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 export default function Login() {
     
-    return (
-    
-       
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+const navigate = useNavigate();
+
+    const handleLogin = async (e) => {
+        e.preventDefault(); 
+        setErrorMessage('');
+        setIsLoading(true);
+
+        try {
+            const response = await fetch('https://tttn-be-yhdg.onrender.com/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.token) {
+                
+                localStorage.setItem('token', data.token);
+                
+                localStorage.setItem('user', JSON.stringify(data.user));
+                
+                
+                navigate('/dashboard'); 
+            } else {
+                setErrorMessage(data.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            setErrorMessage('Lỗi kết nối đến máy chủ. Vui lòng thử lại sau.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+return (     
 <div className="min-h-screen bg-slate-50 flex flex-col relative">
       
       
@@ -24,31 +64,42 @@ export default function Login() {
                <p className="text-gray-500 text-sm mt-1">Vui lòng nhập thông tin sinh viên</p>
             </div>
 
-            <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-5" onSubmit={handleLogin}>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Email</label>
-                <input 
-                  type="email" 
-                  placeholder="MSSV@student.stu.edu.vn" 
-                  className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                />
+                <input
+                            type="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                            placeholder="DH52200320@student.stu.edu.vn"
+                        />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Password</label>
-                <input 
-                  type="password" 
-                  placeholder="••••••••" 
-                  className="w-full px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                />
+                <input
+                            type="password"
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                            placeholder="Nhập mật khẩu"
+                        />
               </div>
 
-              <button 
-                type="submit" 
-                className="w-full bg-red-700 hover:bg-red-800 text-white font-medium py-3 rounded-md transition-colors flex justify-center items-center gap-2 mt-4"
-              >
-                Đăng nhập <span>→</span>
-              </button>
+              <button
+                        type="submit"
+                        disabled={isLoading}
+                        className={`w-full bg-red-700 hover:bg-red-800 text-white font-medium py-3 rounded-md transition-colors flex justify-center items-center gap-2 mt-4 ${
+                            isLoading 
+                            ? 'bg-blue-400 cursor-not-allowed' 
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                    >
+                        {isLoading ? 'Đang xử lý...' : 'Đăng nhập'}
+                    </button>
             </form>
 
             <div className="mt-6">
