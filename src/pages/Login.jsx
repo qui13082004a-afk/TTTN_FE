@@ -7,7 +7,7 @@ export default function Login() {
     const [errorMessage, setErrorMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-const navigate = useNavigate();
+    const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault(); 
@@ -73,7 +73,7 @@ return (
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                            placeholder="DH52200320@student.stu.edu.vn"
+                            placeholder="MSSV@student.stu.edu.vn"
                         />
               </div>
 
