@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 
@@ -6,8 +6,34 @@ export default function Nhomhoc() {
 
   const [popupMessage, setPopupMessage] = useState('');
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [groups, setGroups] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
- 
+ useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+       
+        const id_sinh_vien = 158; 
+        const response = await fetch(`https://tttn-be-yhdg.onrender.com/api/group-show?id_sinh_vien=${id_sinh_vien}`);
+        const result = await response.json();
+        
+        if (result.success) {
+          setGroups(result.data);
+        } else {
+          setPopupMessage('Không thể lấy danh sách nhóm học.');
+          setIsPopupOpen(true);
+        }
+      } catch (error) {
+        console.error('Lỗi khi fetch data:', error);
+        setPopupMessage('Có lỗi xảy ra khi kết nối tới máy chủ.');
+        setIsPopupOpen(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGroups();
+  }, []);
   const handleJoinGroup = (group) => {
     if (group.isFull) {
       setPopupMessage('Nhóm đã đầy thành viên!');
@@ -21,61 +47,8 @@ export default function Nhomhoc() {
     }
   };
 
-  // Dữ liệu giả 
-  const groups = [
-    {
-      id: 1,
-      name: 'Nhóm 1 - Đồ án cuối kỳ',
-      subject: 'Công nghệ phần mềm',
-      teacher: 'Bùi nhật bằng',
-      members: 5,
-      maxMembers: 6,
-      role: 'Trưởng nhóm',
-      lastActive: '2 giờ trước',
-      isJoined: true, 
-      isFull: false,
-      isExpired: false
-    },
-    {
-      id: 2,
-      name: 'Nhóm ôn tập giữa kỳ',
-      subject: 'Cơ sở dữ liệu nâng cao',
-      teacher: 'Nguyễn Văn An',
-      members: 5,
-      maxMembers: 5,
-      role: '',
-      lastActive: '1 ngày trước',
-      isJoined: false, 
-      isFull: true,    
-      isExpired: false
-    },
-    {
-      id: 3,
-      name: 'Team Front-end',
-      subject: 'Phát triển phần mềm mã nguồn mở',
-      teacher: 'Trường',
-      members: 2,
-      maxMembers: 3,
-      role: '',
-      lastActive: 'Vừa xong',
-      isJoined: false, 
-      isFull: false,
-      isExpired: true 
-    },
-    {
-      id: 4,
-      name: 'Nhóm học nhóm 5',
-      subject: 'Lập trình Web',
-      teacher: 'Lê Văn C',
-      members: 2,
-      maxMembers: 5,
-      role: '',
-      lastActive: '10 phút trước',
-      isJoined: false,
-      isFull: false,  
-      isExpired: false
-    }
-  ];
+
+ 
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden relative">
@@ -110,15 +83,19 @@ export default function Nhomhoc() {
               Tìm nhóm
             </button>
           </div>
-
+          {isLoading ? (
+            <div className="text-center py-10">
+               <p className="text-gray-500">Đang tải danh sách nhóm...</p>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {groups.map((group) => (
-              <div key={group.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow flex flex-col">
+              <div key={group.id_nhom} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow flex flex-col">
                 
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800 line-clamp-1" title={group.name}>{group.name}</h3>
-                    <p className="text-red-600 text-sm font-medium mt-1">Môn học: {group.subject}</p>
+                    <h3 className="text-lg font-bold text-gray-800 line-clamp-1" title={group.ten_nhom}>{group.ten_nhom}</h3>
+                    <p className="text-red-600 text-sm font-medium mt-1">Môn học: {group.ten_mon_hoc}</p>
                   </div>
                   
                  
@@ -135,23 +112,23 @@ export default function Nhomhoc() {
                   <div>
                     <div className="flex justify-between text-sm mb-1.5">
                       <span className="text-gray-500 font-medium">Giảng viên</span>
-                      <span className="text-gray-700 font-medium">{group.teacher}</span>
+                      <span className="text-gray-700 font-medium">{group.ten_giang_vien}</span>
                     </div>
 
                     <div className="flex justify-between text-sm mb-1.5">
                       <span className="text-gray-500 font-medium">Thành viên</span>
                       <span className={`font-medium ${group.isFull ? 'text-red-600' : 'text-gray-700'}`}>
-                        {group.members} / {group.maxMembers}
+                        {group.so_thanh_vien} 
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 text-sm text-gray-500 pt-2">
-                    Hoạt động: {group.lastActive}
+                    Trạng thái: <span className="text-green-600 font-medium">{group.trang_thai}</span> 
                   </div>
                 </div>
 
-                {/* Xử lý ẩn/hiện Component Nút bấm */}
+               
                 <div className="pt-4 border-t border-gray-100">
                   {group.isJoined ? (
                     <button className="w-full py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-800 font-medium rounded-lg transition-colors text-sm border border-gray-200">
@@ -173,7 +150,7 @@ export default function Nhomhoc() {
               </div>
             ))}
           </div>
-
+          )}
         </main>
       </div>
 
