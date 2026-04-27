@@ -1,37 +1,59 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 
 export default function Nhomhoc() {
-
+  const navigate = useNavigate();
   const [popupMessage, setPopupMessage] = useState('');
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [groups, setGroups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
- useEffect(() => {
-    const fetchGroups = async () => {
-      try {
-       
-        const id_sinh_vien = 158; 
-        const response = await fetch(`https://tttn-be-yhdg.onrender.com/api/group-show?id_sinh_vien=${id_sinh_vien}`);
-        const result = await response.json();
-        
-        if (result.success) {
-          setGroups(result.data);
-        } else {
-          setPopupMessage('Không thể lấy danh sách nhóm học.');
-          setIsPopupOpen(true);
-        }
-      } catch (error) {
-        console.error('Lỗi khi fetch data:', error);
-        setPopupMessage('Có lỗi xảy ra khi kết nối tới máy chủ.');
-        setIsPopupOpen(true);
-      } finally {
-        setIsLoading(false);
+const fetchGroups = async (keyword = '') => {
+    setIsLoading(true);
+    try {
+      
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      if (!token || !userStr) {
+        navigate('/login');
+        return;
       }
-    };
-
+      const currentUser = JSON.parse(userStr);
+      const id_sinh_vien = currentUser.id; 
+      
+      
+      let url = `https://tttn-be-yhdg.onrender.com/api/group-show?id_sinh_vien=${id_sinh_vien}`;
+      if (keyword.trim() !== '') {
+        url += `&keyword=${encodeURIComponent(keyword.trim())}`;
+      }
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        setGroups(result.data);
+      } else {
+        setGroups([]); 
+      }
+    } catch (error) {
+      console.error('Lỗi khi fetch data:', error);
+      setPopupMessage('Có lỗi xảy ra khi kết nối tới máy chủ.');
+      setIsPopupOpen(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+ useEffect(() => {
+  
     fetchGroups();
   }, []);
   const handleJoinGroup = (group) => {
@@ -46,9 +68,19 @@ export default function Nhomhoc() {
       alert(`Tham gia ${group.name} thành công!`); 
     }
   };
+const handleSearch = () => {
+    fetchGroups(searchTerm);
+  };
 
-
- 
+ const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+   const handleClearSearch = () => {
+    setSearchTerm('');
+    fetchGroups(''); 
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden relative">
@@ -76,10 +108,24 @@ export default function Nhomhoc() {
               <input 
                 type="text" 
                 placeholder="Tìm kiếm nhóm, môn học..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none transition-all text-sm"
               />
+              {searchTerm && (
+                <button 
+                  onClick={handleClearSearch}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-red-600 transition-colors"
+                  title="Xóa tìm kiếm"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                  </svg>
+                </button>
+              )}
             </div>
-            <button className="bg-white border border-gray-300 text-gray-700 px-4 py-2.5 rounded-md hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm">
+            <button onClick={handleSearch} className="bg-white border border-gray-300 text-gray-700 px-4 py-2.5 rounded-md hover:bg-gray-50 transition-colors font-medium text-sm shadow-sm">
               Tìm nhóm
             </button>
           </div>
