@@ -5,11 +5,17 @@ import Header from '../components/Header';
 
 export default function Nhomhoc() {
   const navigate = useNavigate();
-  const [popupMessage, setPopupMessage] = useState('');
+  const [popupMessage, setPopupMessage] = useState('error');
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [groups, setGroups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const showPopup = (message, type = 'error') => {
+    setPopupMessage(message);
+    setPopupType(type);
+    setIsPopupOpen(true);
+  };
 
 const fetchGroups = async (keyword = '') => {
     setIsLoading(true);
@@ -56,16 +62,50 @@ const fetchGroups = async (keyword = '') => {
   
     fetchGroups();
   }, []);
-  const handleJoinGroup = (group) => {
-    if (group.isFull) {
-      setPopupMessage('Nhóm đã đầy thành viên!');
-      setIsPopupOpen(true);
-    } else if (group.isExpired) {
-      setPopupMessage('Đã hết thời gian đăng ký nhóm!');
-      setIsPopupOpen(true);
-    } else {
+   const handleJoinGroup = async (group) => {
+    
+    if (group.so_thanh_vien >= group.so_luong_toi_da) {
+      showPopup('Nhóm đã đầy thành viên, không thể tham gia!', 'error');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
       
-      alert(`Tham gia ${group.name} thành công!`); 
+      if (!token || !userStr) {
+        navigate('/login');
+        return;
+      }
+      
+      const currentUser = JSON.parse(userStr);
+
+     
+      const response = await fetch('https://tttn-be-yhdg.onrender.com/api/group-join', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id_nhom: group.id_nhom,
+          id_sinh_vien: currentUser.id
+        })
+      });
+
+      const result = await response.json();
+
+      
+      if (result.success) {
+        showPopup(result.message || `Tham gia ${group.ten_nhom} thành công!`, 'success');
+        fetchGroups(searchTerm); 
+      } else {
+        
+        showPopup(result.message || 'Không thể tham gia nhóm! Nhóm đã đầy hoặc hết thời gian đăng ký.', 'error');
+      }
+    } catch (error) {
+      console.error('Lỗi khi join group:', error);
+      showPopup('Lỗi kết nối máy chủ. Vui lòng thử lại sau.', 'error');
     }
   };
 const handleSearch = () => {
@@ -133,9 +173,17 @@ const handleSearch = () => {
             <div className="text-center py-10">
                <p className="text-gray-500">Đang tải danh sách nhóm...</p>
             </div>
+          ) : groups.length === 0 ? (
+            <div className="text-center py-10 bg-white rounded-xl border border-gray-100">
+               <p className="text-gray-500">Không tìm thấy nhóm học nào phù hợp.</p>
+            </div>
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {groups.map((group) => (
+            {groups.map((group) => {
+                 const isFull = group.so_thanh_vien >= group.so_luong_toi_da;
+
+
+            return (
               <div key={group.id_nhom} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow flex flex-col">
                 
                 <div className="flex justify-between items-start mb-4">
@@ -144,7 +192,7 @@ const handleSearch = () => {
                     <p className="text-red-600 text-sm font-medium mt-1">Môn học: {group.ten_mon_hoc}</p>
                   </div>
                   
-                 
+                  {/* Nếu API sau này có trả về isJoined & role thì hiển thị */}
                   {group.isJoined && (
                     <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
                       group.role === 'Trưởng nhóm' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
@@ -163,8 +211,8 @@ const handleSearch = () => {
 
                     <div className="flex justify-between text-sm mb-1.5">
                       <span className="text-gray-500 font-medium">Thành viên</span>
-                      <span className={`font-medium ${group.isFull ? 'text-red-600' : 'text-gray-700'}`}>
-                        {group.so_thanh_vien} 
+                      <span className={`font-medium ${isFull ? 'text-red-600' : 'text-gray-700'}`}>
+                        {group.so_thanh_vien} / {group.so_luong_toi_da}
                       </span>
                     </div>
                   </div>
@@ -174,7 +222,6 @@ const handleSearch = () => {
                   </div>
                 </div>
 
-               
                 <div className="pt-4 border-t border-gray-100">
                   {group.isJoined ? (
                     <button className="w-full py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-800 font-medium rounded-lg transition-colors text-sm border border-gray-200">
@@ -183,40 +230,51 @@ const handleSearch = () => {
                   ) : (
                     <button 
                       onClick={() => handleJoinGroup(group)}
+                      disabled={isFull}
                       className={`w-full py-2.5 font-medium rounded-lg transition-colors text-sm shadow-sm text-white 
-                        ${(group.isFull || group.isExpired) 
-                          ? 'bg-gray-400 hover:bg-gray-500' 
+                        ${isFull 
+                          ? 'bg-gray-400 cursor-not-allowed' 
                           : 'bg-red-600 hover:bg-red-700'
                         }`}
                     >
-                      Tham gia nhóm
+                      {isFull ? 'Nhóm đã đầy' : 'Tham gia nhóm'}
                     </button>
                   )}
                 </div>
               </div>
-            ))}
+            )})}
           </div>
           )}
         </main>
       </div>
 
      
-      {isPopupOpen && (
+       {isPopupOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 transform transition-all">
             
-            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-red-600">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
+            <div className={`flex items-center justify-center w-12 h-12 mx-auto rounded-full mb-4 ${popupType === 'error' ? 'bg-red-100' : 'bg-green-100'}`}>
+              {popupType === 'error' ? (
+                
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-red-600">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              ) : (
+               
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-green-600">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              )}
             </div>
             
-            <h3 className="text-lg font-bold text-center text-gray-900 mb-2">Thông báo</h3>
+            <h3 className="text-lg font-bold text-center text-gray-900 mb-2">
+              {popupType === 'error' ? 'Thông báo lỗi' : 'Thành công'}
+            </h3>
             <p className="text-center text-gray-500 mb-6">{popupMessage}</p>
             
             <button
               onClick={() => setIsPopupOpen(false)}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 rounded-lg transition-colors"
+              className={`w-full text-white font-medium py-2.5 rounded-lg transition-colors ${popupType === 'error' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
             >
               Đóng
             </button>
