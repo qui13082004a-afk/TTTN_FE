@@ -28,7 +28,7 @@ export default function CaidatTKSV() {
         const currentUser = JSON.parse(userStr);
 
         
-        const response = await fetch(`https://tttn-be-yhdg.onrender.com/api/student-profile/${currentUser.id}`, {
+        const response = await fetch(`https://tttn-be-yhdg.onrender.com/api/student-profile/me`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
