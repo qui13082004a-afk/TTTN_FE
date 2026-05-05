@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 
 export default function Nhomhoc() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [popupMessage, setPopupMessage] = useState('error');
+  const [popupType, setPopupType] = useState('error'); 
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [groups, setGroups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [instructorMap, setInstructorMap] = useState({});
+  const [courses, setCourses] = useState([]);
 
   const showPopup = (message, type = 'error') => {
     setPopupMessage(message);
@@ -17,10 +22,9 @@ export default function Nhomhoc() {
     setIsPopupOpen(true);
   };
 
-const fetchGroups = async (keyword = '') => {
+  const fetchGroups = async (keyword = '') => {
     setIsLoading(true);
     try {
-      
       const token = localStorage.getItem('token');
       const userStr = localStorage.getItem('user');
       if (!token || !userStr) {
@@ -29,12 +33,23 @@ const fetchGroups = async (keyword = '') => {
       }
       const currentUser = JSON.parse(userStr);
       const id_sinh_vien = currentUser.id; 
+
+      const searchParams = new URLSearchParams(location.search);
+      const id_lop = searchParams.get('id_lop');
       
+      let url = `https://tttn-be-yhdg.onrender.com/api/group-show?`;
       
-      let url = `https://tttn-be-yhdg.onrender.com/api/group-show?id_sinh_vien=${id_sinh_vien}`;
+      if (id_lop) {
+        url += `id_lop=${id_lop}`;
+      } else {
+        url += `id_sinh_vien=${id_sinh_vien}`;
+      }
+
+    
       if (keyword.trim() !== '') {
         url += `&keyword=${encodeURIComponent(keyword.trim())}`;
       }
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -58,12 +73,41 @@ const fetchGroups = async (keyword = '') => {
       setIsLoading(false);
     }
   };
- useEffect(() => {
-  
+
+  const fetchInstructors = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('https://tttn-be-yhdg.onrender.com/api/student-courses', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        const mapper = {};
+        result.data.forEach(item => {
+         mapper[item.id_lop] = item.giang_vien;
+        });
+        setInstructorMap(mapper);
+        setCourses(result.data);
+      }
+    } catch (error) {
+      console.error('Lỗi khi fetch giảng viên:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchInstructors();
     fetchGroups();
-  }, []);
-   const handleJoinGroup = async (group) => {
-    
+  }, [location.search]);
+
+  const handleJoinGroup = async (group) => {
     if (group.so_thanh_vien >= group.so_luong_toi_da) {
       showPopup('Nhóm đã đầy thành viên, không thể tham gia!', 'error');
       return;
@@ -80,7 +124,6 @@ const fetchGroups = async (keyword = '') => {
       
       const currentUser = JSON.parse(userStr);
 
-     
       const response = await fetch('https://tttn-be-yhdg.onrender.com/api/group-join', {
         method: 'POST',
         headers: {
@@ -95,12 +138,10 @@ const fetchGroups = async (keyword = '') => {
 
       const result = await response.json();
 
-      
       if (result.success) {
         showPopup(result.message || `Tham gia ${group.ten_nhom} thành công!`, 'success');
         fetchGroups(searchTerm); 
       } else {
-        
         showPopup(result.message || 'Không thể tham gia nhóm! Nhóm đã đầy hoặc hết thời gian đăng ký.', 'error');
       }
     } catch (error) {
@@ -108,16 +149,18 @@ const fetchGroups = async (keyword = '') => {
       showPopup('Lỗi kết nối máy chủ. Vui lòng thử lại sau.', 'error');
     }
   };
-const handleSearch = () => {
+
+  const handleSearch = () => {
     fetchGroups(searchTerm);
   };
 
- const handleKeyDown = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       handleSearch();
     }
   };
-   const handleClearSearch = () => {
+
+  const handleClearSearch = () => {
     setSearchTerm('');
     fetchGroups(''); 
   };
@@ -169,6 +212,7 @@ const handleSearch = () => {
               Tìm nhóm
             </button>
           </div>
+
           {isLoading ? (
             <div className="text-center py-10">
                <p className="text-gray-500">Đang tải danh sách nhóm...</p>
@@ -181,45 +225,63 @@ const handleSearch = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {groups.map((group) => {
                  const isFull = group.so_thanh_vien >= group.so_luong_toi_da;
-
+                 const displayGiangVien = instructorMap[group.id_lop] || group.giang_vien || 'Chưa có giảng viên';
 
             return (
               <div key={group.id_nhom} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow flex flex-col">
                 
                 <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-800 line-clamp-1" title={group.ten_nhom}>{group.ten_nhom}</h3>
-                    <p className="text-red-600 text-sm font-medium mt-1">Môn học: {group.ten_mon_hoc}</p>
-                  </div>
-                  
-                  {/* Nếu API sau này có trả về isJoined & role thì hiển thị */}
-                  {group.isJoined && (
-                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                      group.role === 'Trưởng nhóm' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {group.role}
-                    </span>
-                  )}
-                </div>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-green-50 text-green-700 border border-green-200">{group.trang_thai}</span>
+                        {group.isJoined && (
+                          <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+                            group.role === 'Trưởng nhóm' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {group.role}
+                          </span>
+                        )}
+                      </div>
 
                 <div className="flex-1 space-y-3 mb-6">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1.5">
-                      <span className="text-gray-500 font-medium">Giảng viên</span>
-                      <span className="text-gray-700 font-medium">{group.ten_giang_vien}</span>
-                    </div>
 
-                    <div className="flex justify-between text-sm mb-1.5">
-                      <span className="text-gray-500 font-medium">Thành viên</span>
-                      <span className={`font-medium ${isFull ? 'text-red-600' : 'text-gray-700'}`}>
-                        {group.so_thanh_vien} / {group.so_luong_toi_da}
-                      </span>
+                  <div className="flex items-start gap-2.5">
+                    <div className="text-red-600 mt-0.5 shrink-0">
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800 line-clamp-2" title={group.ten_nhom}>{group.ten_nhom}</h3>
+                  </div>
+
+                 <div className="pl-8 space-y-2">
+                   
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400 shrink-0">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                        </svg>
+                        <span className="font-medium text-gray-800 truncate" title={group.ten_mon_hoc}>{group.ten_mon_hoc}</span>
+                      </div>
+
+                    
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400 shrink-0">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                            </svg>
+                            <span className="truncate" title={displayGiangVien}>Giảng viên: <span className="font-medium text-gray-800">{displayGiangVien}</span></span>
+                    </div>
+                  
+
+                    <div className="mt-auto">
+                      <div className="flex items-center gap-1.5 text-sm py-3">
+                        
+                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400 shrink-0">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                          </svg>
+                          
+                          <span className={`font-bold text-gray-700`}> 
+                            {group.so_thanh_vien}
+                          </span>
+                          
+                          <span className="text-gray-500 font-medium">Thành viên</span>
+                      </div>        
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm text-gray-500 pt-2">
-                    Trạng thái: <span className="text-green-600 font-medium">{group.trang_thai}</span> 
-                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-gray-100">
@@ -248,7 +310,6 @@ const handleSearch = () => {
         </main>
       </div>
 
-     
        {isPopupOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 transform transition-all">

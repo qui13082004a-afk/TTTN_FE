@@ -104,36 +104,29 @@ const formatDateTime = (isoString) => {
               <div key={sub.id_lop} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow group flex flex-col">
                 
                 
-                <div className="h-28 bg-gradient-to-r from-red-700 to-red-500 p-5 flex flex-col justify-end relative">
-                  <div className="absolute top-4 left bg-white/20 backdrop-blur-sm px-2.5 py-1 rounded-md text-white text-xs font-medium border border-white/30">
+               <div className="h-28 bg-white p-5 flex flex-col justify-end relative">
+  
+                  <div className="absolute top-4 left bg-gray-100 px-2.5 py-1 rounded-md text-gray-700 text-xs font-medium">
                     {sub.ma_mon}
                   </div>
-                  <h3 className="text-white font-bold text-lg truncate" title={sub.ten_mon}>{sub.ten_mon}</h3>
                   
+                  
+                  <h3 className="text-gray-900 font-bold text-lg truncate" title={sub.ten_mon}>
+                    {sub.ten_mon}
+                  </h3>
                 </div>
 
-                
                 <div className="p-5 flex-1 flex flex-col">
-                  <div className="space-y-3 mb-6 flex-1">
-                    <div className="flex items-center gap-3 text-gray-600 text-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                      </svg>
-                      <span className="font-medium">Giảng viên:</span> {sub.giang_vien}
-                    </div>
-                    
-                    
-                  </div>
-
                   
-                  <div className="pt-4 border-t border-gray-100">
-                      <button 
-                        onClick={() => navigate('/nhomhoc')}
-                        className="w-full py-2.5 text-red-700 bg-gray-100 hover:bg-red-100 font-medium rounded-lg transition-colors text-sm"
-                      >
-                        Xem nhóm học
-                      </button>
-                    </div>
+                  <div className="flex flex-col">
+                    <button 
+                      onClick={() => navigate(`/nhomhoc?id_lop=${sub.id_lop}`)}
+                      className="w-full py-2.5 text-red-700 bg-gray-100 hover:bg-red-100 font-medium rounded-lg transition-colors text-sm"
+                      
+                    >
+                     {sub.giang_vien}
+                    </button>
+                  </div>
                 </div>
 
               </div>

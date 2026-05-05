@@ -20,7 +20,7 @@ export default function KGLamViec() {
     id_sinh_vien_phu_trach: ''
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('task_list'); 
+  const [activeTab, setActiveTab] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
 
 
@@ -71,11 +71,6 @@ export default function KGLamViec() {
         if (wsRes.ok && wsData.success) {
           setWorkspaceData(wsData.data);
           
-          
-          const allowedTabs = wsData.data.menu_actions.filter(action => action.allow);
-          if (allowedTabs.length > 0 && !allowedTabs.find(t => t.key === activeTab)) {
-            setActiveTab(allowedTabs[0].key);
-          }
         } else {
           setPopupMessage('Không thể tải dữ liệu');
           setIsPopupOpen(true);
@@ -251,13 +246,29 @@ if (isLoading) {
   );
 
   const renderTabContent = () => {
+    const ContentWrapper = ({ title, children }) => (
+    <div className="flex flex-col h-full animate-in fade-in duration-300">
+      <div className="flex items-center gap-4 mb-6">
+         
+        <button 
+          onClick={() => setActiveTab(null)}
+          className="flex items-center text-left bg-white border border-gray-200 p-4 rounded-lg shadow-sm"
+          title="Quay lại menu"
+        >
+          <span className="text-red-600 font-bold mr-4 text-lg w-8 text-center">+</span>
+          <span className="font-semibold text-gray-800 text-lg">Quay về</span>
+        </button>
+       
+      </div>
+      {children}
+    </div>
+  );
     switch (activeTab) {
       case 'task_list':
         return (
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 min-h-[400px]">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-gray-800">Danh sách công việc</h2>
-              
+        <ContentWrapper title="Danh sách công việc">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex-1 overflow-auto">
+            <div className="flex justify-end mb-6">
               {isLeader && (
                 <button 
                   onClick={() => setActiveTab('create_task')}
@@ -270,41 +281,29 @@ if (isLoading) {
                 </button>
               )}
             </div>
-
-          
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-             
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 min-h-[400px] flex flex-col gap-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-gray-700 text-sm">CẦN LÀM ({tasks.can_lam?.length || 0})</h3>
-                </div>
+                <h3 className="font-semibold text-gray-700 text-sm mb-2 uppercase">Cần làm ({tasks.can_lam?.length || 0})</h3>
                 {tasks.can_lam?.map(task => renderTaskCard(task, 'can_lam'))}
               </div>
-
-             
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 min-h-[400px] flex flex-col gap-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-blue-800 text-sm">ĐANG LÀM ({tasks.dang_lam?.length || 0})</h3>
-                </div>
+              <div className="bg-blue-50/30 rounded-xl p-4 border border-blue-100 min-h-[400px] flex flex-col gap-3">
+                <h3 className="font-semibold text-blue-800 text-sm mb-2 uppercase">Đang làm ({tasks.dang_lam?.length || 0})</h3>
                 {tasks.dang_lam?.map(task => renderTaskCard(task, 'dang_lam'))}
               </div>
-
-             
-              <div className="bg-yellow-50/50 rounded-xl p-4 border border-green-100 min-h-[400px] flex flex-col gap-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-yellow-800 text-sm">HOÀN THÀNH ({tasks.hoan_thanh?.length || 0})</h3>
-                </div>
+              <div className="bg-green-50/30 rounded-xl p-4 border border-green-100 min-h-[400px] flex flex-col gap-3">
+                <h3 className="font-semibold text-green-800 text-sm mb-2 uppercase">Hoàn thành ({tasks.hoan_thanh?.length || 0})</h3>
                 {tasks.hoan_thanh?.map(task => renderTaskCard(task, 'hoan_thanh'))}
               </div>
             </div>
           </div>
-        );
+        </ContentWrapper>
+      );
 
       case 'members':
         return (
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 min-h-[400px]">
-            <h2 className="text-lg font-bold text-gray-800 mb-6">Thành viên nhóm ({members.length})</h2>
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+           <ContentWrapper title={`Thành viên nhóm (${members.length})`}>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {members.map(member => (
                 <div key={member.id_sinh_vien} className="flex items-center gap-4 p-4 border border-gray-100 rounded-lg hover:shadow-sm transition-shadow">
                   
@@ -339,12 +338,14 @@ if (isLoading) {
                 </div>
               ))}
             </div>
-           
           </div>
-        );
+        </ContentWrapper>
+      );
+    
 
       case 'chat':
         return (
+          <ContentWrapper title="Không gian thảo luận">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-[500px] flex flex-col">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Không gian thảo luận</h2>
             <div className="flex-1 bg-gray-50 rounded-t-lg p-4 flex flex-col gap-4 overflow-y-auto border-x border-t border-gray-200">
@@ -363,11 +364,13 @@ if (isLoading) {
               </button>
             </div>
           </div>
+          </ContentWrapper>
         );
 
       case 'donxin':
         return (
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 min-h-[400px]">
+           <ContentWrapper title="Đơn xin chuyển nhóm">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 min-h-[400px]">
             <h2 className="text-lg font-bold text-gray-800 mb-6">Đơn xin chuyển nhóm</h2>
             <form className="space-y-5 max-w-lg bg-gray-50 p-6 rounded-xl border border-gray-100">
               <div>
@@ -399,10 +402,13 @@ if (isLoading) {
               </div>
             </form>
           </div>
+          </ContentWrapper>
+          
         );
 
       case 'create_task':
         return (
+          <ContentWrapper title="Thêm task mới">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 min-h-[400px]">
             <h2 className="text-lg font-bold text-gray-800 mb-6">Thêm task mới</h2>
             <form className="space-y-5 max-w-lg bg-gray-50 p-6 rounded-xl border border-gray-100"  onSubmit={handleCreateTask}>
@@ -457,10 +463,61 @@ if (isLoading) {
               </div>
             </form>
           </div>
+          </ContentWrapper>
         );
 
       default:
-        return null;
+      return (
+          <div className="max-w-3xl animate-in slide-in-from-bottom-4 duration-500">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-3">
+              Danh sách các Chức năng Quản lý
+            </h2>
+            
+            <div className="flex flex-col space-y-3">
+              
+              <button
+                onClick={() => setActiveTab('create_task')}
+                className="flex items-center text-left bg-white border border-gray-200 p-4 rounded-lg shadow-sm"
+              >
+                <span className="text-red-600 font-bold mr-4 text-lg w-8 text-center">+</span>
+                <span className="font-semibold text-gray-800 text-lg">Tạo task mới</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('task_list')}
+                className="flex items-center text-left bg-white border border-gray-200 p-4 rounded-lg shadow-sm"
+              >
+                <span className="text-red-600 font-bold mr-4 text-lg w-8 text-center">+</span>
+                <span className="font-semibold text-gray-800 text-lg">Việc cần làm</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('members')}
+                className="flex items-center text-left bg-white border border-gray-200 p-4 rounded-lg shadow-sm"
+              >
+                <span className="text-red-600 font-bold mr-4 text-lg w-8 text-center">+</span>
+                <span className="font-semibold text-gray-800 text-lg">Xem thành viên nhóm</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('chat')}
+                className="flex items-center text-left bg-white border border-gray-200 p-4 rounded-lg shadow-sm"
+              >
+                <span className="text-red-600 font-bold mr-4 text-lg w-8 text-center">+</span>
+                <span className="font-semibold text-gray-800 text-lg">Thảo luận nhóm</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('donxin')}
+                className="flex items-center text-left bg-white border border-gray-200 p-4 rounded-lg shadow-sm"
+              >
+                <span className="text-red-600 font-bold mr-4 text-lg w-8 text-center">+</span>
+                <span className="font-semibold text-gray-800 text-lg">Xin đổi nhóm</span>
+              </button>
+
+            </div>
+          </div>
+        );
     }
   };
 
@@ -478,31 +535,11 @@ if (isLoading) {
             <p className="text-gray-500 text-sm mt-1">
               Nhóm số: <span className="font-medium text-gray-700">{group_info.ten_mon_hoc}</span> - 
               Mã lớp: <span className="font-medium text-gray-700">{group_info.ma_lop}</span> - 
-              Vai trò: <span className={`font-medium ${isLeader ? 'text-red-600' : 'text-blue-600'}`}>
-                {isLeader ? 'Nhóm trưởng' : 'Thành viên'}
-              </span>
+              
             </p>
           </div>
 
-          <div className="flex items-center gap-2 mb-6 border-b border-gray-200 pb-px overflow-x-auto hide-scrollbar">
-            {allowedTabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors relative
-                  ${activeTab === tab.key 
-                    ? 'text-red-600 bg-white border-t border-l border-r border-gray-200' 
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'              
-                  }
-                `}
-              >
-                {tab.label}
-                {activeTab === tab.key && (
-                  <span className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-white"></span>
-                )}
-              </button>
-            ))}
-          </div>
+         
 
           <div className="flex-1">
             {renderTabContent()}
