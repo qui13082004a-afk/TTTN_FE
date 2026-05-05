@@ -67,8 +67,7 @@ export default function Nhomhoc() {
       }
     } catch (error) {
       console.error('Lỗi khi fetch data:', error);
-      setPopupMessage('Có lỗi xảy ra khi kết nối tới máy chủ.');
-      setIsPopupOpen(true);
+      showPopup('Có lỗi xảy ra khi kết nối tới máy chủ.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -226,19 +225,34 @@ export default function Nhomhoc() {
             {groups.map((group) => {
                  const isFull = group.so_thanh_vien >= group.so_luong_toi_da;
                  const displayGiangVien = instructorMap[group.id_lop] || group.giang_vien || 'Chưa có giảng viên';
-
+                 const isJoined = group.is_tham_gia === 'Đã tham gia';
+                const displayStatus = isJoined 
+                  ? 'Đang hoạt động' 
+                  : (isFull || group.trang_thai === 'Đã đầy') 
+                    ? 'Đã đầy' 
+                    : group.trang_thai;
             return (
               <div key={group.id_nhom} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow flex flex-col">
                 
                 <div className="flex justify-between items-start mb-4">
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-green-50 text-green-700 border border-green-200">{group.trang_thai}</span>
-                        {group.isJoined && (
-                          <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                            group.role === 'Trưởng nhóm' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                            {group.role}
-                          </span>
-                        )}
-                      </div>
+                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-md border bg-white ${
+                      displayStatus === 'Đã đầy'
+                        ? 'text-red-600 border-red-300' 
+                        : displayStatus === 'Hết hạn' 
+                          ? 'text-amber-600 border-amber-300' 
+                          : 'text-green-600 border-green-300'
+                    }`}>
+                      {displayStatus}
+                    </span>
+                                    
+                    
+                    {isJoined && group.role && (
+                      <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+                        group.role === 'Trưởng nhóm' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {group.role}
+                      </span>
+                    )}
+                </div>
 
                 <div className="flex-1 space-y-3 mb-6">
 
@@ -265,7 +279,6 @@ export default function Nhomhoc() {
                             <span className="truncate" title={displayGiangVien}>Giảng viên: <span className="font-medium text-gray-800">{displayGiangVien}</span></span>
                     </div>
                   
-
                     <div className="mt-auto">
                       <div className="flex items-center gap-1.5 text-sm py-3">
                         
@@ -285,8 +298,12 @@ export default function Nhomhoc() {
                 </div>
 
                 <div className="pt-4 border-t border-gray-100">
-                  {group.isJoined ? (
-                    <button className="w-full py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-800 font-medium rounded-lg transition-colors text-sm border border-gray-200">
+                  
+                  {isJoined ? (
+                    <button 
+                      onClick={() => navigate('/kglamviec')} 
+                      className="w-full py-2.5 font-medium rounded-lg transition-colors text-sm shadow-sm text-white bg-gray-400"
+                    >
                       Vào không gian làm việc
                     </button>
                   ) : (
@@ -316,12 +333,10 @@ export default function Nhomhoc() {
             
             <div className={`flex items-center justify-center w-12 h-12 mx-auto rounded-full mb-4 ${popupType === 'error' ? 'bg-red-100' : 'bg-green-100'}`}>
               {popupType === 'error' ? (
-                
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-red-600">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               ) : (
-               
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-green-600">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
