@@ -17,7 +17,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardSV />} />
           <Route path="/monhoc" element={<MyMonHoc />} />
           <Route path="/nhomhoc" element={<Nhomhoc />} />
-          <Route path="/kglamviec" element={<KGLamViec />} />
+          <Route path="/kglamviec/:id" element={<KGLamViec />} />
           <Route path="/caidattksv" element={<CaidatTKSV />} />
           <Route path="/LichLamViecsv" element={<LichLamViecSV />} />
         </Routes>

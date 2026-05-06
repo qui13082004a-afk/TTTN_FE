@@ -8,8 +8,6 @@ export default function KGLamViec() {
   const { id } = useParams(); 
   const groupId = id || '3';
 
-
-
   const [workspaceData, setWorkspaceData] = useState(null);
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState({ can_lam: [], dang_lam: [], hoan_thanh: [] });
@@ -23,7 +21,6 @@ export default function KGLamViec() {
   const [activeTab, setActiveTab] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
 
-
   const [popupMessage, setPopupMessage] = useState('');
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupType, setPopupType] = useState('error');
@@ -33,6 +30,7 @@ export default function KGLamViec() {
     setPopupType(type);
     setIsPopupOpen(true);
   };
+
   const fetchTasks = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -43,7 +41,21 @@ export default function KGLamViec() {
       const data = await res.json();
       if (data.success) setTasks(data.data);
     } catch (error) {
-      console.error('Lỗi khi fetch lại tasks:', error);
+      console.error(error);
+    }
+  }, [groupId]);
+
+  const fetchMembers = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`https://tttn-be-yhdg.onrender.com/api/workspace/${groupId}/members`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) setMembers(data.data);
+    } catch (error) {
+      console.error(error);
     }
   }, [groupId]);
 
@@ -59,7 +71,7 @@ export default function KGLamViec() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         };
-       const [wsRes, membersRes, tasksRes] = await Promise.all([
+        const [wsRes, membersRes, tasksRes] = await Promise.all([
           fetch(`https://tttn-be-yhdg.onrender.com/api/workspace/${groupId}`, { method: 'GET', headers }),
           fetch(`https://tttn-be-yhdg.onrender.com/api/workspace/${groupId}/members`, { method: 'GET', headers }),
           fetch(`https://tttn-be-yhdg.onrender.com/api/workspace/${groupId}/tasks`, { method: 'GET', headers })
@@ -70,24 +82,21 @@ export default function KGLamViec() {
 
         if (wsRes.ok && wsData.success) {
           setWorkspaceData(wsData.data);
-          
         } else {
           setPopupMessage('Không thể tải dữ liệu');
           setIsPopupOpen(true);
         }
 
-        
         if (membersRes.ok && membersData.success) {
           setMembers(membersData.data);
         }
 
-      
         if (tasksRes.ok && tasksData.success) {
           setTasks(tasksData.data);
         }
 
       } catch (error) {
-        console.error('Lỗi dữ liệu:', error);
+        console.error(error);
         setPopupMessage('Lỗi kết nối máy chủ.');
         setIsPopupOpen(true);
       } finally {
@@ -110,29 +119,29 @@ export default function KGLamViec() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          trang_thai: editingTask.status
+          trang_thai: editingTask.status,
+          id_sinh_vien_phu_trach: editingTask.assignee ? Number(editingTask.assignee) : null
         })
       });
 
       const result = await response.json();
 
       if (response.ok && result.success) {
-        showPopup('Cập nhật trạng thái thành công!', 'success');
+        showPopup('Cập nhật task thành công!', 'success');
         setEditingTask(null); 
-        fetchTasks();         
+        fetchTasks();        
       } else {
         showPopup(result.message || 'Có lỗi xảy ra khi cập nhật.', 'error');
       }
     } catch (error) {
-      console.error('Lỗi cập nhật task:', error);
+      console.error(error);
       showPopup('Lỗi kết nối máy chủ.', 'error');
     }
   };
 
-   const handleCreateTask = async (e) => {
+  const handleCreateTask = async (e) => {
     e.preventDefault();
 
-   
     if (!newTask.ten_cong_viec || !newTask.han_chot || !newTask.id_sinh_vien_phu_trach) {
       showPopup('Vui lòng nhập Tên công việc, Người phụ trách và Hạn chót.', 'error');
       return;
@@ -158,23 +167,52 @@ export default function KGLamViec() {
 
       if (response.ok && result.success) {
         showPopup('Tạo task thành công!', 'success');
-        
         setNewTask({ ten_cong_viec: '', mo_ta: '', han_chot: '', id_sinh_vien_phu_trach: '' });
-       
         fetchTasks();
         setActiveTab('task_list');
       } else {
         showPopup(result.message || 'Không thể tạo task.', 'error');
       }
     } catch (error) {
-      console.error('Lỗi khi tạo task:', error);
+      console.error(error);
       showPopup('Lỗi kết nối máy chủ.', 'error');
     }
   };
-   const formatDate = (isoString) => {
+
+  const handleDeleteMember = async (memberId, memberName) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa "${memberName}" khỏi nhóm?`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`https://tttn-be-yhdg.onrender.com/api/workspace/${groupId}/members/${memberId}`, {
+        method: 'DELETE', 
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        showPopup('Đã xóa thành viên khỏi nhóm!', 'success');
+        fetchMembers(); 
+        fetchTasks(); 
+      } else {
+        showPopup(result.message || 'Không thể xóa thành viên lúc này.', 'error');
+      }
+    } catch (error) {
+      console.error(error);
+      showPopup('Lỗi kết nối máy chủ.', 'error');
+    }
+  };
+
+  const formatDate = (isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString);
-    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
   };
    
   const getInitials = (name) => {
@@ -183,11 +221,64 @@ export default function KGLamViec() {
     return parts[parts.length - 1].charAt(0).toUpperCase();
   };
 
+  const handleDragStart = (e, taskId, currentStatus) => {
+    e.dataTransfer.setData('taskId', taskId);
+    e.dataTransfer.setData('currentStatus', currentStatus);
+  };
 
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
 
+  const handleDrop = async (e, newStatus) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData('taskId');
+    const currentStatus = e.dataTransfer.getData('currentStatus');
 
+    if (!taskId || currentStatus === newStatus) return;
 
-if (isLoading) {
+    let movedTask = null;
+    const updatedCurrentList = tasks[currentStatus].filter(t => {
+      if (t.id_cong_viec.toString() === taskId.toString()) {
+        movedTask = t;
+        return false;
+      }
+      return true;
+    });
+
+    if (!movedTask) return;
+
+    setTasks(prev => ({
+      ...prev,
+      [currentStatus]: updatedCurrentList,
+      [newStatus]: [...prev[newStatus], movedTask]
+    }));
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`https://tttn-be-yhdg.onrender.com/api/workspace/tasks/${taskId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ trang_thai: newStatus })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        showPopup(result.message || 'Không thể cập nhật trạng thái khi kéo thả.', 'error');
+        fetchTasks(); 
+      }
+    } catch (error) {
+      console.error(error);
+      showPopup('Lỗi kết nối máy chủ.', 'error');
+      fetchTasks(); 
+    }
+  };
+
+  if (isLoading) {
     return (
       <div className="flex h-screen bg-gray-50 items-center justify-center">
          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mb-2 mr-3"></div>
@@ -196,60 +287,72 @@ if (isLoading) {
     );
   }
 
- if (!workspaceData) return null;
+  if (!workspaceData) return null;
 
-  const { group_info, current_user, menu_actions } = workspaceData;
+  const { group_info, current_user } = workspaceData;
   const isLeader = current_user.vai_tro === 'truong_nhom';
-  const allowedTabs = menu_actions.filter(action => action.allow);
 
-
-
-  const renderTaskCard = (task, status) => (
-    <div key={task.id_cong_viec} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-red-300 transition-colors relative group">
-      <p className="font-medium text-gray-800 text-sm mb-1 line-clamp-2">{task.ten_cong_viec}</p>
-      
-      
-      {task.nguoi_phu_trach && (
-        <div className="flex items-center gap-2 mb-3 mt-2">
-          {task.nguoi_phu_trach.avatar ? (
-            <img src={task.nguoi_phu_trach.avatar} alt="avatar" className="w-5 h-5 rounded-full object-cover" />
-          ) : (
-            <div className="w-5 h-5 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-[10px] font-bold">
-              {getInitials(task.nguoi_phu_trach.ho_ten)}
-            </div>
-          )}
-          <span className="text-xs text-gray-600">{task.nguoi_phu_trach.ho_ten}</span>
-        </div>
-      )}
-
-      <div className="flex justify-between items-center mt-auto pt-2 border-t border-gray-50">
-        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded font-medium flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          {formatDate(task.han_chot)}
-        </span>
+  const renderTaskCard = (task, status) => {
+    return (
+      <div 
+        key={task.id_cong_viec} 
+        draggable={true}
+        onDragStart={(e) => handleDragStart(e, task.id_cong_viec, status)}
+        className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 relative group transition-colors hover:border-red-300 cursor-grab active:cursor-grabbing"
+      >
+        <p className={`font-medium text-sm mb-1 line-clamp-2 ${status === 'hoan_thanh' ? 'line-through text-gray-400 italic' : 'text-gray-800'}`}>
+          {task.ten_cong_viec}
+        </p>
         
-        <button 
-          onClick={() => setEditingTask({ 
-            id: task.id_cong_viec,
-            name: task.ten_cong_viec, 
-            status: status, 
-            note: task.ghi_chu || '' 
-          })}
-          className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline px-1"
-        >
-         Cập nhật trạng thái
-        </button>
+        {task.nguoi_phu_trach ? (
+          <div className="flex items-center gap-2 mb-3 mt-2">
+            {task.nguoi_phu_trach.avatar ? (
+              <img src={task.nguoi_phu_trach.avatar} alt="avatar" className="w-5 h-5 rounded-full object-cover" />
+            ) : (
+              <div className="w-5 h-5 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-[10px] font-bold">
+                {getInitials(task.nguoi_phu_trach.ho_ten)}
+              </div>
+            )}
+            <span className="text-xs text-gray-600">{task.nguoi_phu_trach.ho_ten}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 mb-3 mt-2">
+            <div className="w-5 h-5 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-[10px] font-bold">
+              ?
+            </div>
+            <span className="text-xs text-gray-400 italic">Chưa phân công</span>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center mt-auto pt-2 border-t border-gray-50">
+          <span className={`text-xs px-2 py-1 rounded font-medium flex items-center gap-1 ${status === 'hoan_thanh' ? 'bg-gray-50 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {formatDate(task.han_chot)}
+          </span>
+          
+          <button 
+            onClick={() => setEditingTask({ 
+              id: task.id_cong_viec,
+              name: task.ten_cong_viec, 
+              status: status, 
+              note: task.ghi_chu || '',
+              assignee: task.id_sinh_vien_phu_trach || task.nguoi_phu_trach?.id_sinh_vien || '' 
+            })}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline px-1"
+          >
+          Cập nhật
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderTabContent = () => {
     const ContentWrapper = ({ title, children }) => (
     <div className="flex flex-col h-full animate-in fade-in duration-300">
       <div className="flex items-center gap-4 mb-6">
-         
         <button 
           onClick={() => setActiveTab(null)}
           className="flex items-center text-left bg-white border border-gray-200 p-4 rounded-lg shadow-sm"
@@ -258,7 +361,6 @@ if (isLoading) {
           <span className="text-red-600 font-bold mr-4 text-lg w-8 text-center">+</span>
           <span className="font-semibold text-gray-800 text-lg">Quay về</span>
         </button>
-       
       </div>
       {children}
     </div>
@@ -282,15 +384,27 @@ if (isLoading) {
               )}
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 min-h-[400px] flex flex-col gap-3">
+              <div 
+                className="bg-gray-50 rounded-xl p-4 border border-gray-100 min-h-[400px] flex flex-col gap-3"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, 'can_lam')}
+              >
                 <h3 className="font-semibold text-gray-700 text-sm mb-2 uppercase">Cần làm ({tasks.can_lam?.length || 0})</h3>
                 {tasks.can_lam?.map(task => renderTaskCard(task, 'can_lam'))}
               </div>
-              <div className="bg-blue-50/30 rounded-xl p-4 border border-blue-100 min-h-[400px] flex flex-col gap-3">
+              <div 
+                className="bg-blue-50/30 rounded-xl p-4 border border-blue-100 min-h-[400px] flex flex-col gap-3"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, 'dang_lam')}
+              >
                 <h3 className="font-semibold text-blue-800 text-sm mb-2 uppercase">Đang làm ({tasks.dang_lam?.length || 0})</h3>
                 {tasks.dang_lam?.map(task => renderTaskCard(task, 'dang_lam'))}
               </div>
-              <div className="bg-green-50/30 rounded-xl p-4 border border-green-100 min-h-[400px] flex flex-col gap-3">
+              <div 
+                className="bg-green-50/30 rounded-xl p-4 border border-green-100 min-h-[400px] flex flex-col gap-3"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, 'hoan_thanh')}
+              >
                 <h3 className="font-semibold text-green-800 text-sm mb-2 uppercase">Hoàn thành ({tasks.hoan_thanh?.length || 0})</h3>
                 {tasks.hoan_thanh?.map(task => renderTaskCard(task, 'hoan_thanh'))}
               </div>
@@ -306,7 +420,6 @@ if (isLoading) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {members.map(member => (
                 <div key={member.id_sinh_vien} className="flex items-center gap-4 p-4 border border-gray-100 rounded-lg hover:shadow-sm transition-shadow">
-                  
                   {member.avatar ? (
                     <img src={member.avatar} alt="avatar" className="w-12 h-12 rounded-full object-cover border border-gray-200" />
                   ) : (
@@ -314,7 +427,6 @@ if (isLoading) {
                       {getInitials(member.ho_ten)}
                     </div>
                   )}
-
                   <div className="flex-1">
                     <h3 className="font-bold text-gray-800 text-sm">{member.ho_ten}</h3>
                     <p className="text-xs text-gray-500 mt-0.5">{member.mssv}</p>
@@ -324,10 +436,12 @@ if (isLoading) {
                       }`}>
                         {member.vai_tro}
                       </span>
-                      
-                     
                       {member.co_the_xoa && (
-                        <button className="text-red-500 hover:text-red-700">
+                        <button 
+                          onClick={() => handleDeleteMember(member.id_sinh_vien, member.ho_ten)}
+                          className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 transition-colors"
+                          title="Xóa khỏi nhóm"
+                        >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                           </svg>
@@ -342,7 +456,6 @@ if (isLoading) {
         </ContentWrapper>
       );
     
-
       case 'chat':
         return (
           <ContentWrapper title="Không gian thảo luận">
@@ -403,7 +516,6 @@ if (isLoading) {
             </form>
           </div>
           </ContentWrapper>
-          
         );
 
       case 'create_task':
@@ -474,7 +586,6 @@ if (isLoading) {
             </h2>
             
             <div className="flex flex-col space-y-3">
-              
               <button
                 onClick={() => setActiveTab('create_task')}
                 className="flex items-center text-left bg-white border border-gray-200 p-4 rounded-lg shadow-sm"
@@ -514,7 +625,6 @@ if (isLoading) {
                 <span className="text-red-600 font-bold mr-4 text-lg w-8 text-center">+</span>
                 <span className="font-semibold text-gray-800 text-lg">Xin đổi nhóm</span>
               </button>
-
             </div>
           </div>
         );
@@ -534,12 +644,9 @@ if (isLoading) {
             <h1 className="text-2xl font-bold text-gray-800">{group_info.ten_nhom}</h1>
             <p className="text-gray-500 text-sm mt-1">
               Nhóm số: <span className="font-medium text-gray-700">{group_info.ten_mon_hoc}</span> - 
-              Mã lớp: <span className="font-medium text-gray-700">{group_info.ma_lop}</span> - 
-              
+              Mã lớp: <span className="font-medium text-gray-700">{group_info.ma_lop}</span>
             </p>
           </div>
-
-         
 
           <div className="flex-1">
             {renderTabContent()}
@@ -548,8 +655,7 @@ if (isLoading) {
         </main>
       </div>
     
-
-{editingTask && (
+      {editingTask && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all">
             
@@ -573,6 +679,24 @@ if (isLoading) {
                   className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm text-gray-500 bg-gray-50 cursor-not-allowed outline-none" 
                 />
               </div>
+
+              {isLeader && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Người phụ trách</label>
+                  <select 
+                    value={editingTask.assignee || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, assignee: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none bg-white"
+                  >
+                    <option value="">-- Chưa phân công --</option>
+                    {members.map(mem => (
+                      <option key={mem.id_sinh_vien} value={mem.id_sinh_vien}>
+                        {mem.ho_ten}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Trạng thái</label>

@@ -301,7 +301,7 @@ export default function Nhomhoc() {
                   
                   {isJoined ? (
                     <button 
-                      onClick={() => navigate('/kglamviec')} 
+                     onClick={() => navigate(`/kglamviec/${group.id_nhom}`)}
                       className="w-full py-2.5 font-medium rounded-lg transition-colors text-sm shadow-sm text-white bg-gray-400"
                     >
                       Vào không gian làm việc
