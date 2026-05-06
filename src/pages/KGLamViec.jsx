@@ -21,6 +21,10 @@ export default function KGLamViec() {
   const [activeTab, setActiveTab] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
 
+
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const [changeGroupForm, setChangeGroupForm] = useState({ id_nhom_moi: '', ly_do: '' });
+
   const [popupMessage, setPopupMessage] = useState('');
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [popupType, setPopupType] = useState('error');
@@ -107,6 +111,41 @@ export default function KGLamViec() {
     fetchWorkspace();
     
   }, [groupId, navigate]);
+
+  
+  useEffect(() => {
+    if (activeTab === 'donxin' && workspaceData) {
+      const fetchAvailableGroups = async () => {
+        try {
+          const token = localStorage.getItem('token');
+         
+          const studentId = workspaceData?.current_user?.id_sinh_vien;
+          
+          const res = await fetch(`https://tttn-be-yhdg.onrender.com/api/group-show?id_sinh_vien=${studentId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          
+          if (data.success) {
+          
+            const currentGroup = data.data.find(g => g.id_nhom.toString() === groupId.toString());
+            const currentLopId = currentGroup ? currentGroup.id_lop : workspaceData?.group_info?.id_lop;
+            
+            
+            const filteredGroups = data.data.filter(g => 
+              g.id_lop === currentLopId && 
+              g.id_nhom.toString() !== groupId.toString()
+            );
+            
+            setAvailableGroups(filteredGroups);
+          }
+        } catch (error) {
+          console.error("Lỗi khi fetch danh sách nhóm:", error);
+        }
+      };
+      fetchAvailableGroups();
+    }
+  }, [activeTab, groupId, workspaceData]);
 
   const handleUpdateTaskStatus = async (e) => {
     e.preventDefault();
@@ -202,6 +241,52 @@ export default function KGLamViec() {
         fetchTasks(); 
       } else {
         showPopup(result.message || 'Không thể xóa thành viên lúc này.', 'error');
+      }
+    } catch (error) {
+      console.error(error);
+      showPopup('Lỗi kết nối máy chủ.', 'error');
+    }
+  };
+
+  
+  const handleSubmitChangeGroup = async (e) => {
+    e.preventDefault();
+    if (!changeGroupForm.id_nhom_moi || !changeGroupForm.ly_do.trim()) {
+      showPopup('Vui lòng chọn nhóm mới và nhập lý do.', 'error');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const selectedGroup = availableGroups.find(g => g.id_nhom.toString() === changeGroupForm.id_nhom_moi);
+      
+      if (!selectedGroup) return;
+
+      const payload = {
+        id_lop: selectedGroup.id_lop,
+        id_nhom_moi: Number(changeGroupForm.id_nhom_moi),
+        ly_do: changeGroupForm.ly_do
+      };
+
+      const response = await fetch('https://tttn-be-yhdg.onrender.com/api/group-change-requests', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      
+      if (response.ok && (!result.message || result.message.toLowerCase() === "thành công" || result.success)) {
+        showPopup('Gửi yêu cầu chuyển nhóm thành công!', 'success');
+        setChangeGroupForm({ id_nhom_moi: '', ly_do: '' });
+        setActiveTab(null);
+      } else {
+      
+        showPopup(result.message || 'Không thể gửi yêu cầu', 'error');
       }
     } catch (error) {
       console.error(error);
@@ -342,7 +427,7 @@ export default function KGLamViec() {
             })}
             className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline px-1"
           >
-          Cập nhật
+          <span>Cập nhật trạng thái </span>
           </button>
         </div>
       </div>
@@ -389,7 +474,7 @@ export default function KGLamViec() {
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'can_lam')}
               >
-                <h3 className="font-semibold text-gray-700 text-sm mb-2 uppercase">Cần làm ({tasks.can_lam?.length || 0})</h3>
+                <h3 className="font-semibold text-gray-700 text-sm mb-2 uppercase">Cần làm</h3>
                 {tasks.can_lam?.map(task => renderTaskCard(task, 'can_lam'))}
               </div>
               <div 
@@ -397,7 +482,7 @@ export default function KGLamViec() {
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'dang_lam')}
               >
-                <h3 className="font-semibold text-blue-800 text-sm mb-2 uppercase">Đang làm ({tasks.dang_lam?.length || 0})</h3>
+                <h3 className="font-semibold text-blue-800 text-sm mb-2 uppercase">Đang làm</h3>
                 {tasks.dang_lam?.map(task => renderTaskCard(task, 'dang_lam'))}
               </div>
               <div 
@@ -405,7 +490,7 @@ export default function KGLamViec() {
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'hoan_thanh')}
               >
-                <h3 className="font-semibold text-green-800 text-sm mb-2 uppercase">Hoàn thành ({tasks.hoan_thanh?.length || 0})</h3>
+                <h3 className="font-semibold text-green-800 text-sm mb-2 uppercase">Hoàn thành</h3>
                 {tasks.hoan_thanh?.map(task => renderTaskCard(task, 'hoan_thanh'))}
               </div>
             </div>
@@ -480,34 +565,47 @@ export default function KGLamViec() {
           </ContentWrapper>
         );
 
+      
       case 'donxin':
         return (
            <ContentWrapper title="Đơn xin chuyển nhóm">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 min-h-[400px]">
             <h2 className="text-lg font-bold text-gray-800 mb-6">Đơn xin chuyển nhóm</h2>
-            <form className="space-y-5 max-w-lg bg-gray-50 p-6 rounded-xl border border-gray-100">
+            <form onSubmit={handleSubmitChangeGroup} className="space-y-5 max-w-lg bg-gray-50 p-6 rounded-xl border border-gray-100">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Chọn nhóm muốn chuyển</label>
-                <select className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none bg-white">
+                <select 
+                  value={changeGroupForm.id_nhom_moi}
+                  onChange={(e) => setChangeGroupForm({ ...changeGroupForm, id_nhom_moi: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none bg-white"
+                >
                   <option value="">-- Chọn nhóm --</option>
-                  <option value="1">Nhóm 1</option>
-                  <option value="2">Nhóm 2</option>
+                  {availableGroups.map((g) => (
+                    <option key={g.id_nhom} value={g.id_nhom}>
+                      {g.ten_nhom} ({g.so_thanh_vien}/{g.so_luong_toi_da}) {g.so_thanh_vien >= g.so_luong_toi_da ? '- Đã đầy' : ''}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Lý do chuyển nhóm</label>
                 <textarea 
+                  value={changeGroupForm.ly_do}
+                  onChange={(e) => setChangeGroupForm({ ...changeGroupForm, ly_do: e.target.value })}
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none bg-white min-h-[120px]"
-                  placeholder="Nhập lý do chuyển nhóm"
+                  placeholder="Nhập lý do chuyển nhóm..."
                 ></textarea>
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" className="bg-red-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-red-700 transition-colors text-sm shadow-sm">
-                  Lưu
+                <button type="submit" className="bg-red-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-red-700 transition-colors text-sm shadow-sm">
+                  Gửi yêu cầu
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => setActiveTab('todo')}
+                  onClick={() => {
+                    setChangeGroupForm({ id_nhom_moi: '', ly_do: '' });
+                    setActiveTab(null);
+                  }}
                   className="bg-white border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm shadow-sm"
                 >
                   Hủy
@@ -660,7 +758,7 @@ export default function KGLamViec() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all">
             
             <div className="flex justify-between items-center mb-5">
-              <h3 className="text-lg font-bold text-gray-900">Cập nhật task</h3>
+              <h3 className="text-lg font-bold  text-blue-900">Cập nhật task</h3>
               <button onClick={() => setEditingTask(null)} className="text-gray-400 hover:text-gray-600">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -671,12 +769,12 @@ export default function KGLamViec() {
             <form className="space-y-4" onSubmit={handleUpdateTaskStatus}>
               
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Tên công việc</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Công việc</label>
                 <input 
                   type="text" 
                   defaultValue={editingTask.name}
-                  disabled
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm text-gray-500 bg-gray-50 cursor-not-allowed outline-none" 
+                  
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm text-gray-500 bg-gray-50 outline-none" 
                 />
               </div>
 
@@ -699,7 +797,7 @@ export default function KGLamViec() {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Trạng thái</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Current Status</label>
                 
                 <select 
                   value={editingTask.status}
@@ -713,7 +811,7 @@ export default function KGLamViec() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Ghi chú (Tùy chọn)</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Ghi chú</label>
                 <textarea 
                   defaultValue={editingTask.note}
                   disabled 
@@ -728,13 +826,13 @@ export default function KGLamViec() {
                   onClick={() => setEditingTask(null)}
                   className="flex-1 bg-white border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm shadow-sm"
                 >
-                  Hủy
+                  Hủy bỏ
                 </button>
                 <button 
                   type="submit" 
-                  className="flex-1 bg-red-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-red-700 transition-colors text-sm shadow-sm"
+                  className="flex-1 bg-blue-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-red-700 transition-colors text-sm shadow-sm"
                 >
-                 Lưu
+                 Cập nhật
                 </button>
               </div>
             </form>
